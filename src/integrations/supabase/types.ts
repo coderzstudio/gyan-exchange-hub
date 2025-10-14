@@ -71,6 +71,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notes_uploader_id_fkey"
+            columns: ["uploader_id"]
+            isOneToOne: false
+            referencedRelation: "user_leaderboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -152,6 +159,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "reports_reporter_id_fkey"
+            columns: ["reporter_id"]
+            isOneToOne: false
+            referencedRelation: "user_leaderboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
       votes: {
@@ -191,14 +205,51 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_leaderboard"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      user_leaderboard: {
+        Row: {
+          gyan_points: number | null
+          id: string | null
+          reputation_level:
+            | Database["public"]["Enums"]["reputation_level"]
+            | null
+        }
+        Insert: {
+          gyan_points?: number | null
+          id?: string | null
+          reputation_level?:
+            | Database["public"]["Enums"]["reputation_level"]
+            | null
+        }
+        Update: {
+          gyan_points?: number | null
+          id?: string | null
+          reputation_level?:
+            | Database["public"]["Enums"]["reputation_level"]
+            | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      award_upload_points: {
+        Args: { _user_id: string }
+        Returns: undefined
+      }
+      deduct_download_points: {
+        Args: { _cost: number; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       note_status: "pending" | "approved" | "quarantined"

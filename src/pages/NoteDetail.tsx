@@ -221,21 +221,28 @@ const NoteDetail = () => {
     }
 
     const downloadCost = calculateDownloadCost();
-    
-    if (userProfile.gyan_points < downloadCost) {
-      toast.error(`You need ${downloadCost} Gyan Points to download this file. You have ${userProfile.gyan_points} points.`);
-      return;
-    }
 
     setDownloading(true);
 
     try {
-      // Deduct points
-      const newPoints = userProfile.gyan_points - downloadCost;
-      await supabase
-        .from("profiles")
-        .update({ gyan_points: newPoints })
-        .eq("id", currentUserId);
+      // Deduct points using secure RPC function
+      const { data: success, error } = await supabase.rpc("deduct_download_points", { 
+        _user_id: currentUserId,
+        _cost: downloadCost 
+      });
+
+      if (error) {
+        toast.error("Failed to process download");
+        console.error("Download error:", error);
+        setDownloading(false);
+        return;
+      }
+
+      if (!success) {
+        toast.error(`You need ${downloadCost} Gyan Points to download this file. You have ${userProfile.gyan_points} points.`);
+        setDownloading(false);
+        return;
+      }
 
       // Download the file
       const link = document.createElement("a");
@@ -251,7 +258,7 @@ const NoteDetail = () => {
       toast.success(`File downloaded! ${downloadCost} Gyan Points deducted.`);
       
       // Update local state
-      setUserProfile({ ...userProfile, gyan_points: newPoints });
+      setUserProfile({ ...userProfile, gyan_points: userProfile.gyan_points - downloadCost });
     } catch (error) {
       console.error("Download error:", error);
       toast.error("Failed to download file");

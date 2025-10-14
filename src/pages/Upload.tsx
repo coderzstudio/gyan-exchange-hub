@@ -91,19 +91,8 @@ const Upload = () => {
         throw insertError;
       }
 
-      // Award Gyan Points
-      const { data: currentProfile } = await supabase
-        .from("profiles")
-        .select("gyan_points")
-        .eq("id", user.id)
-        .single();
-
-      if (currentProfile) {
-        await supabase
-          .from("profiles")
-          .update({ gyan_points: currentProfile.gyan_points + 10 })
-          .eq("id", user.id);
-      }
+      // Award Gyan Points using secure RPC function
+      await supabase.rpc("award_upload_points", { _user_id: user.id });
 
       toast.success("Note uploaded successfully! You earned 10 Gyan Points!");
       navigate("/dashboard");
