@@ -24,6 +24,7 @@ export type Database = {
           semester: number
           status: Database["public"]["Enums"]["note_status"] | null
           subject: string
+          tags: string[] | null
           topic: string
           trust_score: number | null
           updated_at: string | null
@@ -39,6 +40,7 @@ export type Database = {
           semester: number
           status?: Database["public"]["Enums"]["note_status"] | null
           subject: string
+          tags?: string[] | null
           topic: string
           trust_score?: number | null
           updated_at?: string | null
@@ -54,6 +56,7 @@ export type Database = {
           semester?: number
           status?: Database["public"]["Enums"]["note_status"] | null
           subject?: string
+          tags?: string[] | null
           topic?: string
           trust_score?: number | null
           updated_at?: string | null

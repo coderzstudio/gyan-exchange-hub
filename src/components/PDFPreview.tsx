@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
-import { Button } from "@/components/ui/button";
-import { Loader2, Download } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import "./pdf-preview.css";
 
 // Configure PDF.js worker
@@ -9,12 +8,9 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 
 interface PDFPreviewProps {
   fileUrl: string;
-  onDownload: () => void;
-  canDownload: boolean;
-  downloadCost: number;
 }
 
-export const PDFPreview = ({ fileUrl, onDownload, canDownload, downloadCost }: PDFPreviewProps) => {
+export const PDFPreview = ({ fileUrl }: PDFPreviewProps) => {
   const [numPages, setNumPages] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
@@ -28,12 +24,8 @@ export const PDFPreview = ({ fileUrl, onDownload, canDownload, downloadCost }: P
   return (
     <div className="space-y-4">
       <div className="bg-muted/30 p-4 rounded-lg">
-        <div className="flex items-center justify-between mb-4">
+        <div className="mb-4">
           <h3 className="font-semibold text-foreground">PDF Preview (First {previewPages} pages)</h3>
-          <Button onClick={onDownload} disabled={!canDownload}>
-            <Download className="mr-2 h-4 w-4" />
-            Download Full PDF ({downloadCost} points)
-          </Button>
         </div>
 
         {loading && (

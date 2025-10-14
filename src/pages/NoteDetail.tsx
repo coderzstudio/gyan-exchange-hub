@@ -320,12 +320,17 @@ const NoteDetail = () => {
               <CardContent>
                 {/* File Preview */}
                 {note.file_type.includes("pdf") ? (
-                  <PDFPreview
-                    fileUrl={note.file_url}
-                    onDownload={handleDownload}
-                    canDownload={!downloading && userProfile && userProfile.gyan_points >= calculateDownloadCost()}
-                    downloadCost={calculateDownloadCost()}
-                  />
+                  <div className="space-y-4">
+                    <PDFPreview fileUrl={note.file_url} />
+                    <Button 
+                      onClick={handleDownload} 
+                      disabled={downloading || !userProfile || userProfile.gyan_points < calculateDownloadCost()} 
+                      className="w-full"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Full PDF ({calculateDownloadCost()} points)
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="bg-muted rounded-lg p-8 mb-6 min-h-[400px] flex items-center justify-center">

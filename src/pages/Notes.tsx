@@ -7,8 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { FileText, ThumbsUp, Award, Loader2 } from "lucide-react";
+import { FileText, ThumbsUp, Award, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface Note {
   id: string;
@@ -30,6 +38,8 @@ const Notes = () => {
   const [selectedSemester, setSelectedSemester] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -73,6 +83,17 @@ const Notes = () => {
   });
 
   const subjects = Array.from(new Set(notes.map((note) => note.subject)));
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredNotes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedNotes = filteredNotes.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSemester, selectedSubject, searchQuery]);
 
   const getReputationColor = (level: string) => {
     switch (level) {
@@ -150,44 +171,90 @@ const Notes = () => {
             <p className="text-muted-foreground">No notes found. Be the first to upload!</p>
           </Card>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredNotes.map((note) => (
-              <Card key={note.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/notes/${note.id}`)}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <Badge variant="secondary">Sem {note.semester}</Badge>
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {paginatedNotes.map((note) => (
+                <Card key={note.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/notes/${note.id}`)}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        <Badge variant="secondary">Sem {note.semester}</Badge>
+                      </div>
+                      <Badge className={getReputationColor(note.profiles.reputation_level)}>
+                        {note.profiles.reputation_level}
+                      </Badge>
                     </div>
-                    <Badge className={getReputationColor(note.profiles.reputation_level)}>
-                      {note.profiles.reputation_level}
-                    </Badge>
-                  </div>
-                  <CardTitle className="text-lg mt-2">{note.topic}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-muted-foreground">
-                      <span className="font-medium">Subject:</span> {note.subject}
-                    </p>
-                    <p className="text-muted-foreground">
-                      <span className="font-medium">By:</span> {note.profiles.full_name}
-                    </p>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between">
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <ThumbsUp className="h-4 w-4" />
-                    <span>{note.upvotes} upvotes</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm font-medium text-success">
-                    <Award className="h-4 w-4" />
-                    <span>{note.trust_score} Trust</span>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                    <CardTitle className="text-lg mt-2">{note.topic}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">Subject:</span> {note.subject}
+                      </p>
+                      <p className="text-muted-foreground">
+                        <span className="font-medium">By:</span> {note.profiles.full_name}
+                      </p>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="flex justify-between">
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <ThumbsUp className="h-4 w-4" />
+                      <span>{note.upvotes} upvotes</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-sm font-medium text-success">
+                      <Award className="h-4 w-4" />
+                      <span>{note.trust_score} Trust</span>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => setCurrentPage(page)}
+                          isActive={currentPage === page}
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage === totalPages}
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

@@ -17,6 +17,7 @@ const Upload = () => {
   const [semester, setSemester] = useState("");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
+  const [tags, setTags] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +76,7 @@ const Upload = () => {
         .getPublicUrl(fileName);
 
       // Save note to database
+      const tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0);
       const { error: insertError } = await supabase.from("notes").insert({
         uploader_id: user.id,
         semester: parseInt(semester),
@@ -82,6 +84,7 @@ const Upload = () => {
         topic,
         file_url: publicUrl,
         file_type: file.type,
+        tags: tagsArray,
       });
 
       if (insertError) {
@@ -161,6 +164,17 @@ const Upload = () => {
                       placeholder="e.g., Binary Search Trees, React Hooks"
                       value={topic}
                       onChange={(e) => setTopic(e.target.value)}
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="tags">Tags (comma-separated)</Label>
+                    <Input
+                      id="tags"
+                      placeholder="e.g., algorithms, data structures, tutorial"
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
                       disabled={loading}
                     />
                   </div>
