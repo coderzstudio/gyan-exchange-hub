@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ThumbsUp, ThumbsDown, Flag, Award, User, Calendar, Loader2, ArrowLeft, Download } from "lucide-react";
 import { toast } from "sonner";
 import { PDFPreview } from "@/components/PDFPreview";
+import { reportSchema } from "@/lib/validation";
 
 interface NoteData {
   id: string;
@@ -176,15 +177,17 @@ const NoteDetail = () => {
       return;
     }
 
-    if (!reportReason.trim()) {
-      toast.error("Please provide a reason");
+    // Validate report reason with zod
+    const validation = reportSchema.safeParse({ reason: reportReason });
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
       return;
     }
 
     const { error } = await supabase.from("reports").insert({
       reporter_id: currentUserId,
       note_id: noteId!,
-      reason: reportReason,
+      reason: validation.data.reason,
     });
 
     if (error) {

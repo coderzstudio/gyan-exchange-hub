@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload as UploadIcon, Loader2 } from "lucide-react";
+import { uploadSchema } from "@/lib/validation";
 
 const Upload = () => {
   const navigate = useNavigate();
@@ -23,15 +24,12 @@ const Upload = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
-      const maxSize = 10 * 1024 * 1024; // 10MB
-
-      if (selectedFile.size > maxSize) {
-        toast.error("File size must be less than 10MB");
-        return;
-      }
-
-      if (!selectedFile.type.includes("pdf") && !selectedFile.type.includes("image")) {
-        toast.error("Only PDF and image files are allowed");
+      
+      // Validate file with zod schema
+      const fileValidation = uploadSchema.shape.file.safeParse(selectedFile);
+      if (!fileValidation.success) {
+        toast.error(fileValidation.error.errors[0].message);
+        e.target.value = "";
         return;
       }
 
@@ -41,9 +39,23 @@ const Upload = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!semester || !subject || !topic || !file) {
       toast.error("Please fill in all fields");
+      return;
+    }
+
+    // Validate all inputs with zod
+    const validation = uploadSchema.safeParse({
+      semester: parseInt(semester),
+      subject: subject.trim(),
+      topic: topic.trim(),
+      tags,
+      file
+    });
+
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
       return;
     }
 
@@ -75,16 +87,15 @@ const Upload = () => {
         .from("notes")
         .getPublicUrl(fileName);
 
-      // Save note to database
-      const tagsArray = tags.split(",").map(tag => tag.trim()).filter(tag => tag.length > 0);
+      // Save note to database using validated data
       const { error: insertError } = await supabase.from("notes").insert({
         uploader_id: user.id,
-        semester: parseInt(semester),
-        subject,
-        topic,
+        semester: validation.data.semester,
+        subject: validation.data.subject,
+        topic: validation.data.topic,
         file_url: publicUrl,
         file_type: file.type,
-        tags: tagsArray,
+        tags: validation.data.tags,
       });
 
       if (insertError) {
