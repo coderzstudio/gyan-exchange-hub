@@ -181,8 +181,8 @@ const Notes = () => {
                         <FileText className="h-5 w-5 text-primary" />
                         <Badge variant="secondary">Sem {note.semester}</Badge>
                       </div>
-                      <Badge className={getReputationColor(note.profiles.reputation_level)}>
-                        {note.profiles.reputation_level}
+                      <Badge className={getReputationColor(note.profiles?.reputation_level || 'Newbie')}>
+                        {note.profiles?.reputation_level || 'Newbie'}
                       </Badge>
                     </div>
                     <CardTitle className="text-lg mt-2">{note.topic}</CardTitle>
@@ -193,7 +193,7 @@ const Notes = () => {
                         <span className="font-medium">Subject:</span> {note.subject}
                       </p>
                       <p className="text-muted-foreground">
-                        <span className="font-medium">By:</span> {note.profiles.full_name}
+                        <span className="font-medium">By:</span> {note.profiles?.full_name || 'Anonymous'}
                       </p>
                     </div>
                   </CardContent>
