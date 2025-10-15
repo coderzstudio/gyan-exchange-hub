@@ -157,6 +157,15 @@ const NoteDetail = () => {
       const newDownvotes = note.downvotes + downvoteDelta;
       const newTrustScore = newUpvotes - newDownvotes;
 
+      // Update local state immediately for instant UI feedback
+      setNote({
+        ...note,
+        upvotes: newUpvotes,
+        downvotes: newDownvotes,
+        trust_score: newTrustScore,
+      });
+
+      // Update database in background
       await supabase
         .from("notes")
         .update({
@@ -165,8 +174,6 @@ const NoteDetail = () => {
           trust_score: newTrustScore,
         })
         .eq("id", noteId);
-
-      fetchNoteAndUserData();
     }
   };
 
@@ -363,7 +370,7 @@ const NoteDetail = () => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-4 justify-between items-center">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                     <Button
                       variant={userVote === "upvote" ? "default" : "outline"}
                       size="sm"
@@ -380,6 +387,9 @@ const NoteDetail = () => {
                       <ThumbsDown className="mr-2 h-4 w-4" />
                       {note.downvotes}
                     </Button>
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-semibold">Total: {note.upvotes + note.downvotes}</span> votes
+                    </div>
                   </div>
 
                   <Dialog>
