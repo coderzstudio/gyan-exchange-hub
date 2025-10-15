@@ -108,7 +108,7 @@ const Index = () => {
               <Users className="h-12 w-12 text-primary" />
               <h3 className="text-xl font-bold text-foreground">Community-Powered</h3>
               <p className="text-muted-foreground">
-                Built by students, for students. Our quality is maintained by a smart, community-driven rating and reputation system.
+                Built by student, for students. Our quality is maintained by a smart, community-driven rating and reputation system.
               </p>
             </Card>
 
@@ -154,7 +154,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 border-t border-border">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2025 Padhai Co. Made with ❤️ for students, by students.</p>
+          <p>© 2025 Padhai Co. Made with ❤️ for students, by student.</p>
         </div>
       </footer>
     </div>
