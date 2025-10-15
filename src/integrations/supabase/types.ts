@@ -16,12 +16,13 @@ export type Database = {
     Tables: {
       notes: {
         Row: {
+          category: Database["public"]["Enums"]["education_category"]
           created_at: string | null
           downvotes: number | null
           file_type: string
           file_url: string
           id: string
-          semester: number
+          level: string
           status: Database["public"]["Enums"]["note_status"] | null
           subject: string
           tags: string[] | null
@@ -32,12 +33,13 @@ export type Database = {
           upvotes: number | null
         }
         Insert: {
+          category?: Database["public"]["Enums"]["education_category"]
           created_at?: string | null
           downvotes?: number | null
           file_type: string
           file_url: string
           id?: string
-          semester: number
+          level?: string
           status?: Database["public"]["Enums"]["note_status"] | null
           subject: string
           tags?: string[] | null
@@ -48,12 +50,13 @@ export type Database = {
           upvotes?: number | null
         }
         Update: {
+          category?: Database["public"]["Enums"]["education_category"]
           created_at?: string | null
           downvotes?: number | null
           file_type?: string
           file_url?: string
           id?: string
-          semester?: number
+          level?: string
           status?: Database["public"]["Enums"]["note_status"] | null
           subject?: string
           tags?: string[] | null
@@ -281,6 +284,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      education_category: "programming" | "school" | "university"
       note_status: "pending" | "approved" | "quarantined"
       reputation_level:
         | "Newbie"
@@ -416,6 +420,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      education_category: ["programming", "school", "university"],
       note_status: ["pending", "approved", "quarantined"],
       reputation_level: [
         "Newbie",

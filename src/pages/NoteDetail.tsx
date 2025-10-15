@@ -15,7 +15,8 @@ import { reportSchema } from "@/lib/validation";
 
 interface NoteData {
   id: string;
-  semester: number;
+  category: string;
+  level: string;
   subject: string;
   topic: string;
   file_url: string;
@@ -325,7 +326,11 @@ const NoteDetail = () => {
                   <div>
                     <CardTitle className="text-2xl mb-2">{note.topic}</CardTitle>
                     <div className="flex gap-2 flex-wrap">
-                      <Badge variant="secondary">Semester {note.semester}</Badge>
+                      <Badge variant="secondary">
+                        {note.category === "programming" ? note.level :
+                         note.category === "school" ? `Class ${note.level}` :
+                         `Semester ${note.level}`}
+                      </Badge>
                       <Badge variant="outline">{note.subject}</Badge>
                     </div>
                   </div>

@@ -2,7 +2,13 @@ import { z } from 'zod';
 
 // Upload form validation
 export const uploadSchema = z.object({
-  semester: z.number().int().min(1, "Semester must be at least 1").max(8, "Semester cannot exceed 8"),
+  category: z.enum(['programming', 'school', 'university'], {
+    errorMap: () => ({ message: "Please select a valid category" })
+  }),
+  level: z.string()
+    .trim()
+    .min(1, "Level/Class/Semester is required")
+    .max(50, "Level must be less than 50 characters"),
   subject: z.string()
     .trim()
     .min(1, "Subject is required")

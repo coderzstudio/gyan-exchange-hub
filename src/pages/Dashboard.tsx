@@ -32,7 +32,8 @@ interface UserNote {
   id: string;
   topic: string;
   subject: string;
-  semester: number;
+  category: string;
+  level: string;
   trust_score: number;
   upvotes: number;
   status: string;
@@ -238,7 +239,9 @@ const Dashboard = () => {
                       <div className="flex-1">
                         <h3 className="font-medium text-foreground">{note.topic}</h3>
                         <p className="text-sm text-muted-foreground">
-                          {note.subject} • Semester {note.semester}
+                          {note.subject} • {note.category === "school" ? `Class ${note.level}` : 
+                           note.category === "university" ? `Semester ${note.level}` : 
+                           note.level}
                         </p>
                       </div>
                       <div className="flex items-center gap-4">

@@ -20,7 +20,8 @@ import {
 
 interface Note {
   id: string;
-  semester: number;
+  category: string;
+  level: string;
   subject: string;
   topic: string;
   upvotes: number;
@@ -35,7 +36,8 @@ interface Note {
 const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSemester, setSelectedSemester] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,19 +72,25 @@ const Notes = () => {
   };
 
   const filteredNotes = notes.filter((note) => {
-    const semesterMatch = selectedSemester === "all" || note.semester.toString() === selectedSemester;
+    const categoryMatch = selectedCategory === "all" || note.category === selectedCategory;
+    const levelMatch = selectedLevel === "all" || note.level === selectedLevel;
     const subjectMatch = selectedSubject === "all" || note.subject === selectedSubject;
     
     const searchMatch = searchQuery === "" || 
       note.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.profiles.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      note.semester.toString().includes(searchQuery);
+      note.level.toLowerCase().includes(searchQuery.toLowerCase());
     
-    return semesterMatch && subjectMatch && searchMatch;
+    return categoryMatch && levelMatch && subjectMatch && searchMatch;
   });
 
   const subjects = Array.from(new Set(notes.map((note) => note.subject)));
+  const levels = Array.from(new Set(
+    notes
+      .filter(note => selectedCategory === "all" || note.category === selectedCategory)
+      .map((note) => note.level)
+  )).sort();
 
   // Pagination logic
   const totalPages = Math.ceil(filteredNotes.length / itemsPerPage);
@@ -93,7 +101,30 @@ const Notes = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedSemester, selectedSubject, searchQuery]);
+  }, [selectedCategory, selectedLevel, selectedSubject, searchQuery]);
+
+  // Reset level filter when category changes
+  useEffect(() => {
+    setSelectedLevel("all");
+  }, [selectedCategory]);
+
+  const getCategoryDisplay = (category: string) => {
+    const displays: Record<string, string> = {
+      programming: "Programming",
+      school: "School",
+      university: "University"
+    };
+    return displays[category] || category;
+  };
+
+  const getLevelLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      programming: "Language",
+      school: "Class",
+      university: "Semester"
+    };
+    return labels[category] || "Level";
+  };
 
   const getReputationColor = (level: string) => {
     switch (level) {
@@ -123,7 +154,7 @@ const Notes = () => {
         <div className="mb-6">
           <Input
             type="text"
-            placeholder="Search by semester, subject, username, or topic..."
+            placeholder="Search by category, subject, topic, or username..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full"
@@ -132,15 +163,29 @@ const Notes = () => {
 
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
-          <Select value={selectedSemester} onValueChange={setSelectedSemester}>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Select Semester" />
+              <SelectValue placeholder="Select Category" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Semesters</SelectItem>
-              {[1, 2, 3, 4, 5, 6].map((sem) => (
-                <SelectItem key={sem} value={sem.toString()}>
-                  Semester {sem}
+              <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="programming">Programming</SelectItem>
+              <SelectItem value="school">School</SelectItem>
+              <SelectItem value="university">University</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+            <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectValue placeholder={`Select ${getLevelLabel(selectedCategory)}`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All {getLevelLabel(selectedCategory)}s</SelectItem>
+              {levels.map((level) => (
+                <SelectItem key={level} value={level}>
+                  {selectedCategory === "school" ? `Class ${level}` : 
+                   selectedCategory === "university" ? `Semester ${level}` : 
+                   level}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -179,7 +224,12 @@ const Notes = () => {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <FileText className="h-5 w-5 text-primary" />
-                        <Badge variant="secondary">Sem {note.semester}</Badge>
+                        <Badge variant="secondary">{getCategoryDisplay(note.category)}</Badge>
+                        <Badge variant="outline">
+                          {note.category === "school" ? `Class ${note.level}` : 
+                           note.category === "university" ? `Sem ${note.level}` : 
+                           note.level}
+                        </Badge>
                       </div>
                       <Badge className={getReputationColor(note.profiles?.reputation_level || 'Newbie')}>
                         {note.profiles?.reputation_level || 'Newbie'}

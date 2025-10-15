@@ -15,7 +15,8 @@ import { uploadSchema } from "@/lib/validation";
 const Upload = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [semester, setSemester] = useState("");
+  const [category, setCategory] = useState<"programming" | "school" | "university">("programming");
+  const [level, setLevel] = useState("");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [tags, setTags] = useState("");
@@ -37,17 +38,23 @@ const Upload = () => {
     }
   };
 
+  const handleCategoryChange = (newCategory: "programming" | "school" | "university") => {
+    setCategory(newCategory);
+    setLevel(""); // Reset level when category changes
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!semester || !subject || !topic || !file) {
+    if (!category || !level || !subject || !topic || !file) {
       toast.error("Please fill in all fields");
       return;
     }
 
     // Validate all inputs with zod
     const validation = uploadSchema.safeParse({
-      semester: parseInt(semester),
+      category,
+      level: level.trim(),
       subject: subject.trim(),
       topic: topic.trim(),
       tags,
@@ -90,7 +97,8 @@ const Upload = () => {
       // Save note to database using validated data
       const { error: insertError } = await supabase.from("notes").insert({
         uploader_id: user.id,
-        semester: validation.data.semester,
+        category: validation.data.category,
+        level: validation.data.level,
         subject: validation.data.subject,
         topic: validation.data.topic,
         file_url: publicUrl,
@@ -115,6 +123,76 @@ const Upload = () => {
     }
   };
 
+  const renderLevelSelector = () => {
+    switch (category) {
+      case "programming":
+        return (
+          <div className="space-y-2">
+            <Label htmlFor="level">Programming Language</Label>
+            <Select value={level} onValueChange={setLevel}>
+              <SelectTrigger id="level">
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Python">Python</SelectItem>
+                <SelectItem value="JavaScript">JavaScript</SelectItem>
+                <SelectItem value="TypeScript">TypeScript</SelectItem>
+                <SelectItem value="Java">Java</SelectItem>
+                <SelectItem value="C++">C++</SelectItem>
+                <SelectItem value="C">C</SelectItem>
+                <SelectItem value="C#">C#</SelectItem>
+                <SelectItem value="Go">Go</SelectItem>
+                <SelectItem value="Rust">Rust</SelectItem>
+                <SelectItem value="PHP">PHP</SelectItem>
+                <SelectItem value="Ruby">Ruby</SelectItem>
+                <SelectItem value="Swift">Swift</SelectItem>
+                <SelectItem value="Kotlin">Kotlin</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        );
+      
+      case "school":
+        return (
+          <div className="space-y-2">
+            <Label htmlFor="level">Class</Label>
+            <Select value={level} onValueChange={setLevel}>
+              <SelectTrigger id="level">
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((cls) => (
+                  <SelectItem key={cls} value={cls.toString()}>
+                    Class {cls}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+      
+      case "university":
+        return (
+          <div className="space-y-2">
+            <Label htmlFor="level">Semester</Label>
+            <Select value={level} onValueChange={setLevel}>
+              <SelectTrigger id="level">
+                <SelectValue placeholder="Select semester" />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                  <SelectItem key={sem} value={sem.toString()}>
+                    Semester {sem}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        );
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background">
@@ -131,26 +209,30 @@ const Upload = () => {
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="semester">Semester</Label>
-                    <Select value={semester} onValueChange={setSemester}>
-                      <SelectTrigger id="semester">
-                        <SelectValue placeholder="Select semester" />
+                    <Label htmlFor="category">Category</Label>
+                    <Select value={category} onValueChange={handleCategoryChange}>
+                      <SelectTrigger id="category">
+                        <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {[1, 2, 3, 4, 5, 6].map((sem) => (
-                          <SelectItem key={sem} value={sem.toString()}>
-                            Semester {sem}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="programming">Programming</SelectItem>
+                        <SelectItem value="school">School</SelectItem>
+                        <SelectItem value="university">University</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {renderLevelSelector()}
 
                   <div className="space-y-2">
                     <Label htmlFor="subject">Subject</Label>
                     <Input
                       id="subject"
-                      placeholder="e.g., Data Structures, Web Development"
+                      placeholder={
+                        category === "programming" ? "e.g., Data Structures, Web Development" :
+                        category === "school" ? "e.g., Mathematics, Science, English" :
+                        "e.g., Data Structures, Web Development"
+                      }
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
                       disabled={loading}
@@ -161,7 +243,11 @@ const Upload = () => {
                     <Label htmlFor="topic">Topic</Label>
                     <Input
                       id="topic"
-                      placeholder="e.g., Binary Search Trees, React Hooks"
+                      placeholder={
+                        category === "programming" ? "e.g., Binary Search Trees, React Hooks" :
+                        category === "school" ? "e.g., Quadratic Equations, Photosynthesis" :
+                        "e.g., Binary Search Trees, React Hooks"
+                      }
                       value={topic}
                       onChange={(e) => setTopic(e.target.value)}
                       disabled={loading}
