@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { BookOpen, Upload, Home, User as UserIcon, LogOut, Info, Shield, FileText, MessageSquare, ListChecks, Gift } from "lucide-react";
+import { BookOpen, Upload, Home, User as UserIcon, LogOut, Info, Shield, FileText, MessageSquare, ListChecks, Gift, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import logo from "@/assets/padhai-logo.png";
@@ -12,6 +13,7 @@ export const Navbar = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -98,6 +100,19 @@ export const Navbar = () => {
                 <DropdownMenuItem onClick={() => navigate("/refer-earn")}>
                   <Gift className="mr-2 h-4 w-4" />
                   Refer & Earn
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+                  {theme === "dark" ? (
+                    <>
+                      <Sun className="mr-2 h-4 w-4" />
+                      Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="mr-2 h-4 w-4" />
+                      Dark Mode
+                    </>
+                  )}
                 </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem onClick={() => navigate("/admin")}>
