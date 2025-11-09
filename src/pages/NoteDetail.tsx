@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { ThumbsUp, ThumbsDown, Flag, Award, User, Calendar, Loader2, ArrowLeft, Download } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Award, User, Calendar, Loader2, ArrowLeft, Download, MessageCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { PDFPreview } from "@/components/PDFPreview";
 import { reportSchema } from "@/lib/validation";
@@ -32,6 +32,17 @@ interface NoteData {
   };
 }
 
+interface Comment {
+  id: string;
+  user_id: string;
+  comment_text: string;
+  created_at: string;
+  profiles: {
+    full_name: string;
+    reputation_level: string;
+  };
+}
+
 const NoteDetail = () => {
   const { noteId } = useParams();
   const navigate = useNavigate();
@@ -42,9 +53,13 @@ const NoteDetail = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [downloading, setDownloading] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   useEffect(() => {
     fetchNoteAndUserData();
+    fetchComments();
   }, [noteId]);
 
   const fetchNoteAndUserData = async () => {
@@ -93,6 +108,81 @@ const NoteDetail = () => {
     }
 
     setLoading(false);
+  };
+
+  const fetchComments = async () => {
+    const { data, error } = await supabase
+      .from("comments")
+      .select(`
+        id,
+        user_id,
+        comment_text,
+        created_at,
+        profiles (
+          full_name,
+          reputation_level
+        )
+      `)
+      .eq("note_id", noteId)
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setComments(data as any);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!currentUserId) {
+      toast.error("Please login to comment");
+      navigate("/auth");
+      return;
+    }
+
+    const trimmedComment = newComment.trim();
+    if (!trimmedComment) {
+      toast.error("Comment cannot be empty");
+      return;
+    }
+
+    if (trimmedComment.length > 500) {
+      toast.error("Comment must be less than 500 characters");
+      return;
+    }
+
+    setSubmittingComment(true);
+
+    const { error } = await supabase
+      .from("comments")
+      .insert({
+        note_id: noteId!,
+        user_id: currentUserId,
+        comment_text: trimmedComment,
+      });
+
+    if (error) {
+      toast.error("Failed to post comment");
+      console.error("Comment error:", error);
+    } else {
+      toast.success("Comment posted!");
+      setNewComment("");
+      fetchComments();
+    }
+
+    setSubmittingComment(false);
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    const { error } = await supabase
+      .from("comments")
+      .delete()
+      .eq("id", commentId);
+
+    if (error) {
+      toast.error("Failed to delete comment");
+    } else {
+      toast.success("Comment deleted");
+      fetchComments();
+    }
   };
 
   const handleVote = async (voteType: "upvote" | "downvote") => {
@@ -512,6 +602,95 @@ const NoteDetail = () => {
             </Card>
           </div>
         </div>
+
+        {/* Comments Section */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5" />
+              Comments ({comments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Add Comment Form */}
+            {currentUserId ? (
+              <div className="space-y-3">
+                <Label htmlFor="new-comment">Add a comment</Label>
+                <Textarea
+                  id="new-comment"
+                  placeholder="Share your thoughts about this note..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  maxLength={500}
+                  rows={3}
+                />
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">
+                    {newComment.length}/500 characters
+                  </span>
+                  <Button 
+                    onClick={handleAddComment} 
+                    disabled={submittingComment || !newComment.trim()}
+                  >
+                    {submittingComment ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Posting...
+                      </>
+                    ) : (
+                      "Post Comment"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 bg-muted rounded-lg">
+                <p className="text-muted-foreground mb-2">Login to join the discussion</p>
+                <Button variant="outline" onClick={() => navigate("/auth")}>
+                  Login
+                </Button>
+              </div>
+            )}
+
+            {/* Comments List */}
+            <div className="space-y-4">
+              {comments.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No comments yet. Be the first to share your thoughts!
+                </p>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="border border-border rounded-lg p-4 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{comment.profiles.full_name}</span>
+                        <Badge 
+                          variant="secondary" 
+                          className={getReputationColor(comment.profiles.reputation_level)}
+                        >
+                          {comment.profiles.reputation_level}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(comment.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {currentUserId === comment.user_id && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteComment(comment.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-foreground whitespace-pre-wrap">{comment.comment_text}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
