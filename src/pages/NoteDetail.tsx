@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { ThumbsUp, ThumbsDown, Flag, Award, User, Calendar, Loader2, ArrowLeft, Download, MessageCircle, Trash2 } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Award, User, Calendar, Loader2, ArrowLeft, Download, MessageCircle, Trash2, Bookmark, BookmarkCheck } from "lucide-react";
 import { toast } from "sonner";
 import { PDFPreview } from "@/components/PDFPreview";
 import { reportSchema } from "@/lib/validation";
@@ -56,11 +56,28 @@ const NoteDetail = () => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     fetchNoteAndUserData();
     fetchComments();
+    checkIfSaved();
   }, [noteId]);
+
+  const checkIfSaved = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return;
+
+    const { data } = await supabase
+      .from("saved_notes")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("note_id", noteId)
+      .maybeSingle();
+
+    setIsSaved(!!data);
+  };
 
   const fetchNoteAndUserData = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -183,6 +200,49 @@ const NoteDetail = () => {
       toast.success("Comment deleted");
       fetchComments();
     }
+  };
+
+  const handleSaveNote = async () => {
+    if (!currentUserId) {
+      toast.error("Please login to save notes");
+      navigate("/auth");
+      return;
+    }
+
+    setSavingNote(true);
+
+    if (isSaved) {
+      // Remove from library
+      const { error } = await supabase
+        .from("saved_notes")
+        .delete()
+        .eq("user_id", currentUserId)
+        .eq("note_id", noteId);
+
+      if (error) {
+        toast.error("Failed to remove from library");
+      } else {
+        toast.success("Removed from library");
+        setIsSaved(false);
+      }
+    } else {
+      // Add to library
+      const { error } = await supabase
+        .from("saved_notes")
+        .insert({
+          user_id: currentUserId,
+          note_id: noteId!,
+        });
+
+      if (error) {
+        toast.error("Failed to save to library");
+      } else {
+        toast.success("Saved to library!");
+        setIsSaved(true);
+      }
+    }
+
+    setSavingNote(false);
   };
 
   const handleVote = async (voteType: "upvote" | "downvote") => {
@@ -499,8 +559,8 @@ const NoteDetail = () => {
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-4 justify-between items-center">
-                  <div className="flex gap-2 items-center">
+                <div className="flex gap-4 justify-between items-center flex-wrap">
+                  <div className="flex gap-2 items-center flex-wrap">
                     <Button
                       variant={userVote === "upvote" ? "default" : "outline"}
                       size="sm"
@@ -522,7 +582,27 @@ const NoteDetail = () => {
                     </div>
                   </div>
 
-                  <Dialog>
+                  <div className="flex gap-2 items-center">
+                    <Button
+                      variant={isSaved ? "default" : "outline"}
+                      size="sm"
+                      onClick={handleSaveNote}
+                      disabled={savingNote}
+                    >
+                      {isSaved ? (
+                        <>
+                          <BookmarkCheck className="mr-2 h-4 w-4" />
+                          Saved
+                        </>
+                      ) : (
+                        <>
+                          <Bookmark className="mr-2 h-4 w-4" />
+                          Save to Library
+                        </>
+                      )}
+                    </Button>
+
+                    <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="sm">
                         <Flag className="mr-2 h-4 w-4" />
@@ -552,6 +632,7 @@ const NoteDetail = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+                  </div>
                 </div>
               </CardContent>
             </Card>

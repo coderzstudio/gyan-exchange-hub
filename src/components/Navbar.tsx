@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
-import { BookOpen, Upload, Home, User as UserIcon, LogOut, Info, Shield, FileText, MessageSquare, ListChecks, Gift, Moon, Sun } from "lucide-react";
+import { BookOpen, Upload, Home, User as UserIcon, LogOut, Info, Shield, FileText, MessageSquare, ListChecks, Gift, Moon, Sun, BookmarkCheck } from "lucide-react";
 import { useTheme } from "next-themes";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -101,6 +101,11 @@ export const Navbar = () => {
                   <Gift className="mr-2 h-4 w-4" />
                   Refer & Earn
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/library")}>
+                  <BookmarkCheck className="mr-2 h-4 w-4" />
+                  My Library
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
                   {theme === "dark" ? (
                     <>
