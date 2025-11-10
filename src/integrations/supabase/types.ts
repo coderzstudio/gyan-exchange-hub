@@ -241,6 +241,35 @@ export type Database = {
           },
         ]
       }
+      note_views: {
+        Row: {
+          id: string
+          note_id: string | null
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          note_id?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          note_id?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_views_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           category: Database["public"]["Enums"]["education_category"]

@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { ThumbsUp, ThumbsDown, Flag, Award, User, Calendar, Loader2, ArrowLeft, Download, MessageCircle, Trash2, Bookmark, BookmarkCheck } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Flag, Award, User, Calendar, Loader2, ArrowLeft, Download, MessageCircle, Trash2, Bookmark, BookmarkCheck, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { PDFPreview } from "@/components/PDFPreview";
 import { reportSchema } from "@/lib/validation";
@@ -27,6 +27,20 @@ interface NoteData {
   created_at: string;
   profiles: {
     id: string;
+    full_name: string;
+    reputation_level: string;
+  };
+}
+
+interface Note {
+  id: string;
+  topic: string;
+  subject: string;
+  category: string;
+  level: string;
+  trust_score: number;
+  file_type: string;
+  profiles: {
     full_name: string;
     reputation_level: string;
   };
@@ -58,11 +72,14 @@ const NoteDetail = () => {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
+  const [relatedNotes, setRelatedNotes] = useState<Note[]>([]);
 
   useEffect(() => {
     fetchNoteAndUserData();
     fetchComments();
     checkIfSaved();
+    trackView();
+    fetchRelatedNotes();
   }, [noteId]);
 
   const checkIfSaved = async () => {
@@ -77,6 +94,70 @@ const NoteDetail = () => {
       .maybeSingle();
 
     setIsSaved(!!data);
+  };
+
+  const trackView = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id || !noteId) return;
+
+    // Track that this user viewed this note
+    await supabase
+      .from("note_views")
+      .upsert({
+        user_id: session.user.id,
+        note_id: noteId,
+      }, { onConflict: "user_id,note_id" });
+  };
+
+  const fetchRelatedNotes = async () => {
+    if (!note) return;
+
+    // Get notes that users who viewed this note also viewed
+    const { data: viewsData } = await supabase
+      .from("note_views")
+      .select("user_id")
+      .eq("note_id", noteId)
+      .limit(20);
+
+    if (!viewsData || viewsData.length === 0) return;
+
+    const userIds = viewsData.map(v => v.user_id);
+
+    // Get other notes these users viewed
+    const { data: relatedData } = await supabase
+      .from("note_views")
+      .select(`
+        note_id,
+        notes!inner (
+          id,
+          topic,
+          subject,
+          category,
+          level,
+          trust_score,
+          file_type,
+          profiles!notes_uploader_id_fkey (
+            full_name,
+            reputation_level
+          )
+        )
+      `)
+      .in("user_id", userIds)
+      .neq("note_id", noteId)
+      .limit(6);
+
+    if (relatedData) {
+      // Extract unique notes and sort by frequency
+      const noteMap = new Map<string, any>();
+      relatedData.forEach((item: any) => {
+        const noteData = item.notes;
+        if (noteData && !noteMap.has(noteData.id)) {
+          noteMap.set(noteData.id, noteData);
+        }
+      });
+      
+      setRelatedNotes(Array.from(noteMap.values()).slice(0, 3));
+    }
   };
 
   const fetchNoteAndUserData = async () => {
@@ -772,6 +853,49 @@ const NoteDetail = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Related Notes Section */}
+        {relatedNotes.length > 0 && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Students Also Viewed
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-3 gap-4">
+                {relatedNotes.map((relatedNote) => (
+                  <Card
+                    key={relatedNote.id}
+                    className="hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/notes/${relatedNote.id}`)}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-sm line-clamp-2">
+                        {relatedNote.topic}
+                      </CardTitle>
+                      <div className="flex gap-1 flex-wrap pt-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {relatedNote.category === "programming" ? relatedNote.level :
+                           relatedNote.category === "school" ? `Class ${relatedNote.level}` :
+                           `Semester ${relatedNote.level}`}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">{relatedNote.subject}</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-muted-foreground truncate">{relatedNote.profiles.full_name}</span>
+                        <span className="font-semibold text-success">★ {relatedNote.trust_score}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

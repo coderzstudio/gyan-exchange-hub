@@ -57,7 +57,7 @@ const Library = () => {
         id,
         note_id,
         created_at,
-        notes (
+        notes!inner (
           id,
           topic,
           subject,
@@ -65,7 +65,8 @@ const Library = () => {
           level,
           trust_score,
           file_type,
-          profiles (
+          uploader_id,
+          profiles!notes_uploader_id_fkey (
             full_name,
             reputation_level
           )
