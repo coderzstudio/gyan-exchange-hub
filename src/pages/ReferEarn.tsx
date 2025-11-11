@@ -40,51 +40,65 @@ const ReferEarn = () => {
   }, []);
 
   const fetchReferralData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setLoading(false);
+        return;
+      }
 
-    // Fetch referral code
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("referral_code")
-      .eq("id", user.id)
-      .single();
+      // Fetch referral code
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("referral_code")
+        .eq("id", session.user.id)
+        .single();
 
-    if (profile) {
-      setReferralCode(profile.referral_code);
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+      } else if (profile) {
+        setReferralCode(profile.referral_code);
+      }
+
+      // Fetch referral stats
+      const { data: statsData, error: statsError } = await supabase.rpc("get_referral_stats", {
+        _user_id: session.user.id
+      });
+
+      if (statsError) {
+        console.error("Stats fetch error:", statsError);
+      } else if (statsData && statsData.length > 0) {
+        setStats(statsData[0]);
+      }
+
+      // Fetch referral list with proper foreign key specification
+      const { data: referralList, error: referralError } = await supabase
+        .from("referrals")
+        .select(`
+          id,
+          referred_user_id,
+          status,
+          points_awarded,
+          created_at,
+          completed_at,
+          profiles!referrals_referred_user_id_fkey (
+            full_name
+          )
+        `)
+        .eq("referrer_id", session.user.id)
+        .order("created_at", { ascending: false });
+
+      if (referralError) {
+        console.error("Referral list fetch error:", referralError);
+      } else if (referralList) {
+        setReferrals(referralList as any);
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      toast.error("Failed to load referral data");
+    } finally {
+      setLoading(false);
     }
-
-    // Fetch referral stats
-    const { data: statsData } = await supabase.rpc("get_referral_stats", {
-      _user_id: user.id
-    });
-
-    if (statsData && statsData.length > 0) {
-      setStats(statsData[0]);
-    }
-
-    // Fetch referral list with proper foreign key specification
-    const { data: referralList } = await supabase
-      .from("referrals")
-      .select(`
-        id,
-        referred_user_id,
-        status,
-        points_awarded,
-        created_at,
-        completed_at,
-        profiles!referrals_referred_user_id_fkey (
-          full_name
-        )
-      `)
-      .eq("referrer_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (referralList) {
-      setReferrals(referralList as any);
-    }
-
-    setLoading(false);
   };
 
   const copyReferralCode = () => {

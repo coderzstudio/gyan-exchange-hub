@@ -51,37 +51,47 @@ const Dashboard = () => {
   }, []);
 
   const fetchUserData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        setLoading(false);
+        return;
+      }
 
-    // Fetch profile
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
+      // Fetch profile
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
 
-    if (profileError) {
-      toast.error("Failed to load profile");
-    } else {
-      setProfile(profileData);
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        toast.error("Failed to load profile");
+      } else {
+        setProfile(profileData);
+      }
+
+      // Fetch user's notes
+      const { data: notesData, error: notesError } = await supabase
+        .from("notes")
+        .select("*")
+        .eq("uploader_id", session.user.id)
+        .order("created_at", { ascending: false });
+
+      if (notesError) {
+        console.error("Notes fetch error:", notesError);
+        toast.error("Failed to load notes");
+      } else {
+        setNotes(notesData || []);
+      }
+    } catch (error) {
+      console.error("Fetch error:", error);
+      toast.error("Failed to load data");
+    } finally {
+      setLoading(false);
     }
-
-    // Fetch user's notes
-    const { data: notesData, error: notesError } = await supabase
-      .from("notes")
-      .select("*")
-      .eq("uploader_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (notesError) {
-      toast.error("Failed to load notes");
-    } else {
-      setNotes(notesData || []);
-    }
-
-    setLoading(false);
   };
 
   const getReputationColor = (level: string) => {

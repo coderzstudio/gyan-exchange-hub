@@ -72,8 +72,8 @@ const Upload = () => {
 
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
         toast.error("Please login first");
         navigate("/auth");
         return;
@@ -81,7 +81,7 @@ const Upload = () => {
 
       // Check daily upload limit
       const { data: uploadCount, error: countError } = await supabase.rpc("get_upload_count", {
-        _user_id: user.id
+        _user_id: session.user.id
       });
 
       if (countError) {
@@ -104,7 +104,7 @@ const Upload = () => {
 
       // Upload file to Supabase Storage
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
       
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("notes")
@@ -121,7 +121,7 @@ const Upload = () => {
 
       // Save note to database using validated data
       const { error: insertError } = await supabase.from("notes").insert({
-        uploader_id: user.id,
+        uploader_id: session.user.id,
         category: validation.data.category,
         level: validation.data.level,
         subject: validation.data.subject,
@@ -136,10 +136,10 @@ const Upload = () => {
       }
 
       // Increment daily upload count
-      await supabase.rpc("increment_upload_count", { _user_id: user.id });
+      await supabase.rpc("increment_upload_count", { _user_id: session.user.id });
 
       // Award Gyan Points using secure RPC function
-      await supabase.rpc("award_upload_points", { _user_id: user.id });
+      await supabase.rpc("award_upload_points", { _user_id: session.user.id });
 
       toast.success("Note uploaded successfully! You earned 10 Gyan Points!");
       navigate("/dashboard");

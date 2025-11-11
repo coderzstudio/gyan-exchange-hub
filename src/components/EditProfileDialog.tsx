@@ -42,8 +42,8 @@ export const EditProfileDialog = ({ currentProfile, onProfileUpdated }: EditProf
     setLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
         toast.error("Please login first");
         return;
       }
@@ -56,7 +56,7 @@ export const EditProfileDialog = ({ currentProfile, onProfileUpdated }: EditProf
       const { error } = await supabase
         .from("profiles")
         .update(updateData)
-        .eq("id", user.id);
+        .eq("id", session.user.id);
 
       if (error) throw error;
 
