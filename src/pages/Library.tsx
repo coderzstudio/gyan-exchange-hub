@@ -51,38 +51,69 @@ const Library = () => {
   };
 
   const fetchSavedNotes = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("saved_notes")
-      .select(`
-        id,
-        note_id,
-        created_at,
-        notes!inner (
+    try {
+      const { data, error } = await supabase
+        .from("saved_notes")
+        .select(`
           id,
-          topic,
-          subject,
-          category,
-          level,
-          trust_score,
-          file_type,
-          uploader_id,
-          profiles!notes_uploader_id_fkey (
-            full_name,
-            reputation_level
+          note_id,
+          created_at,
+          notes (
+            id,
+            topic,
+            subject,
+            category,
+            level,
+            trust_score,
+            file_type,
+            uploader_id
           )
-        )
-      `)
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+        `)
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
 
-    if (error) {
+      if (error) {
+        console.error("Library error:", error);
+        toast.error("Failed to load saved notes");
+        setLoading(false);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        setSavedNotes([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch profiles separately for the uploaders
+      const uploaderIds = data
+        .map(item => item.notes?.uploader_id)
+        .filter(Boolean);
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, reputation_level")
+        .in("id", uploaderIds);
+
+      // Merge profiles with notes
+      const notesWithProfiles = data.map(item => ({
+        ...item,
+        notes: item.notes ? {
+          ...item.notes,
+          profiles: profiles?.find(p => p.id === item.notes?.uploader_id) || {
+            full_name: "Unknown",
+            reputation_level: "Newbie"
+          }
+        } : null
+      }));
+
+      setSavedNotes(notesWithProfiles as any);
+    } catch (error) {
+      console.error("Library fetch error:", error);
       toast.error("Failed to load saved notes");
-      console.error("Library error:", error);
-    } else {
-      setSavedNotes(data as any);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   const handleRemoveNote = async (savedNoteId: string) => {

@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { FileText, ThumbsUp, Award, Loader2, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { AISearch } from "@/components/AISearch";
+
 import {
   Pagination,
   PaginationContent,
@@ -203,15 +203,10 @@ const Notes = () => {
         </div>
 
         <Tabs defaultValue="browse" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-md">
-            <TabsTrigger value="search">AI Search</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 max-w-md">
             <TabsTrigger value="browse">Browse</TabsTrigger>
             <TabsTrigger value="trending">Trending</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="search">
-            <AISearch />
-          </TabsContent>
 
           <TabsContent value="browse" className="space-y-6"
 >
